@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bairstow Method</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th, table td {
+            padding: 8px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        table th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bairstow Method</h1>
+    <label for="functionInput">Ingrese la función:</label>
+    <input type="text" id="functionInput">
+    <br>
+    <label for="degreeInput">Ingrese el grado del polinomio:</label>
+    <input type="number" id="degreeInput">
+    <br>
+    <h2>Ingrese los coeficientes:</h2>
+    <div id="coefficientsContainer">
+        <!-- Coefficients will be dynamically added here -->
+    </div>
+    <br>
+    <label for="tolInput">Ingrese la tolerancia:</label>
+    <input type="text" id="tolInput" value="0.001">
+    <br>
+    <label for="maxIterInput">Ingrese el número máximo de iteraciones:</label>
+    <input type="text" id="maxIterInput" value="100">
+    <br>
+    <button onclick="runBairstow()">Ejecutar Bairstow</button>
+    <br>
+    <canvas id="myCanvas" width="400" height="400"></canvas>
+    <table id="processTable">
+        <thead>
+            <tr>
+                <th>Iteración</th>
+                <th>r</th>
+                <th>s</th>
+                <th>dr</th>
+                <th>ds</th>
+                <th>Error</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Process rows will be dynamically added here -->
+        </tbody>
+    </table>
+
+    <script>
+        // Bairstow Method implementation
+        function bairstowMethod(a, r0, s0, tol, maxIter) {
+            let n = a.length - 1;
+            let b = new Array(n + 1);
+            let c = new Array(n + 1);
+            let iter = 0;
+            let error = tol + 1;
+            let r = r0;
+            let s = s0;
+            while (error > tol && iter < maxIter) {
+                iter++;
+                b[n] = a[n];
+                b[n - 1] = a[n - 1] + r * b[n];
+                c[n] = b[n];
+                c[n - 1] = b[n - 1] + r * c[n];
+                for (let i = n - 2; i >= 0; i--) {
+                    b[i] = a[i] + r * b[i + 1] + s * b[i + 2];
+                    c[i] = b[i] + r * c[i + 1] + s * c[i + 2];
+                }
+                let den = c[2] * c[2] - c[3] * c[1];
+                let dr = (-b[1] * c[2] + b[0] * c[3]) / den;
+                let ds = (-b[0] * c[2] + b[1] * c[1]) / den;
+                r += dr;
+                s += ds;
+                error = Math.max(Math.abs(dr), Math.abs(ds));
+                // Add row to process table
+                let row = processTable.insertRow(-1);
+                row.insertCell(0).innerHTML = iter;
+                row.insertCell(1).innerHTML = r.toFixed(4);
+                row.insertCell(2).innerHTML = s.toFixed(4);
+                row.insertCell(3).innerHTML = dr.toFixed(4);
+                row.insertCell(4).innerHTML = ds.toFixed(4);
+                row.insertCell(5).innerHTML = error.toFixed(4);
+            }
+            return [r, s];
+        }
+
+        function addProcessRow(iter, r, s, dr, ds, error) {
+            let tableBody = document.querySelector("#processTable tbody");
+            let row = tableBody.insertRow();
+            row.innerHTML = `
+                <td>${iter}</td>
+                <td>${r.toFixed(4)}</td>
+                <td>${s.toFixed(4)}</td>
+                <td>${dr.toFixed(4)}</td>
+                <td>${ds.toFixed(4)}</td>
+                <td>${error.toFixed(4)}</td>
+            `;
+        }
+
+        function createCoefficientInputs(degree) {
+            let container = document.getElementById("coefficientsContainer");
+            container.innerHTML = "";
+
+            for (let i = 0; i <= degree; i++) {
+                let label = document.createElement("label");
+                label.textContent = "Coeficiente x^" + (degree - i) + ": ";
+                let input = document.createElement("input");
+                input.type = "number";
+                input.id = "coefficientInput" + i;
+                container.appendChild(label);
+                container.appendChild(input);
+                container.appendChild(document.createElement("br"));
+            }
+        }
+
+        function getCoefficients() {
+            let degree = parseInt(document.getElementById("degreeInput").value);
+            let coefficients = [];
+            for (let i = 0; i <= degree; i++) {
+                let input = document.getElementById("coefficientInput" + i);
+                coefficients.push(parseFloat(input.value));
+            }
+            return coefficients;
+        }
+
+        function runBairstow() {
+            // Get user input
+            let functionInput = document.getElementById("functionInput").value;
+            let tolInput = parseFloat(document.getElementById("tolInput").value);
+            let maxIterInput = parseInt(document.getElementById("maxIterInput").value);
+
+            // Parse coefficients
+            let coefficients = getCoefficients();
+
+            // Evaluate function
+            let func = (x) => eval(functionInput);
+
+            // Calculate y values for graph
+            let step = 0.1;
+            let xValues = [];
+            let yValues = [];
+            for (let x = -10; x <= 10; x += step) {
+                xValues.push(x);
+                yValues.push(func(x));
+            }
+
+            // Clear previous graph and table
+            let canvas = document.getElementById("myCanvas");
+            let ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            processTable.innerHTML = "<tr><th>Iteración</th><th>r</th><th>s</th><th>dr</th><th>ds</th><th>Error</th></tr>";
+
+            // Run Bairstow method
+            let [r, s] = bairstowMethod(coefficients, 0, 0, tolInput, maxIterInput);
+
+            // Draw graph
+            let minX = Math.min(...xValues);
+            let maxX = Math.max(...xValues);
+            let minY = Math.min(...yValues);
+            let maxY = Math.max(...yValues);
+            let scaleX = canvas.width / (maxX - minX);
+            let scaleY = canvas.height / (maxY - minY);
+            ctx.beginPath();
+            ctx.moveTo((xValues[0] - minX) * scaleX, canvas.height - (yValues[0] - minY) * scaleY);
+            for (let i = 1; i < xValues.length; i++) {
+                ctx.lineTo((xValues[i] - minX) * scaleX, canvas.height - (yValues[i] - minY) * scaleY);
+            }
+            ctx.stroke();
+        }
+
+        document.getElementById("degreeInput").addEventListener("input", function() {
+            let degree = parseInt(this.value);
+            createCoefficientInputs(degree);
+        });
+    </script>
+</body>
+</html>
