@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bisection Method</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Bisection Method</h1>
+    <p>Enter the function:</p>
+    <input type="text" id="function">
+    <br><br>
+    <p>Enter the interval:</p>
+    <input type="number" id="a"> to <input type="number" id="b">
+    <br><br>
+    <p>Enter the tolerance:</p>
+    <input type="number" id="tolerance" value="0.001">
+    <br><br>
+    <button onclick="bisectionMethod()">Calculate</button>
+    <br><br>
+    <div id="result"></div>
+    <canvas id="chart"></canvas>
+
+    <script src="https://cdn.jsdelivr.net/npm/mathjs@9"></script>
+    <script>
+        function bisectionMethod() {
+            let f = math.compile(document.getElementById("function").value);
+            let a = parseFloat(document.getElementById("a").value);
+            let b = parseFloat(document.getElementById("b").value);
+            let tolerance = parseFloat(document.getElementById("tolerance").value);
+
+            if (f.evaluate({x: a}) * f.evaluate({x: b}) >= 0) {
+                document.getElementById("result").innerHTML = "The Bisection Method cannot be applied on this interval.";
+                return;
+            }
+
+            let c = a;
+            let table = "<table border='1'><tr><th>Iteration</th><th>a</th><th>b</th><th>c</th><th>f(c)</th><th>Relative Error</th><th>True Error (%)</th></tr>";
+            let iteration = 0;
+            let trueError = 0;
+            let prevC = 0;
+
+            // Store data points for plotting the function
+            let dataPoints = [];
+
+            while ((b-a) >= tolerance) {
+                iteration++;
+                prevC = c;
+                c = (a+b)/2;
+                table += "<tr><td>" + iteration + "</td><td>" + a + "</td><td>" + b + "</td><td>" + c + "</td><td>" + f.evaluate({x: c}) + "</td>";
+
+                if (prevC !== 0) {
+                    trueError = Math.abs((c - prevC) / c) * 100;
+                    table += "<td>" + trueError.toFixed(4) + "%</td>";
+                } else {
+                    table += "<td>N/A</td>";
+                }
+
+                table += "<td>" + Math.abs(f.evaluate({x: c})).toFixed(4) + "%</td></tr>";
+
+                if (f.evaluate({x: c}) == 0.0) {
+                    break;
+                } else if (f.evaluate({x: c}) * f.evaluate({x: a}) < 0) {
+                    b = c;
+                } else {
+                    a = c;
+                }
+
+                // Add data point to plot the function
+                dataPoints.push({x: c, y: f.evaluate({x: c})});
+            }
+            table += "</table>";
+
+            document.getElementById("result").innerHTML = "The root is " + c + ".<br><br>" + table;
+
+            // Plot the function and highlight the root
+            plotFunction(dataPoints, c);
+        }
+
+        function plotFunction(dataPoints, root) {
+            let ctx = document.getElementById("chart").getContext("2d");
+
+            let chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'Function',
+                        data: dataPoints,
+                        borderColor: 'blue',
+                        backgroundColor: 'transparent',
+                    }, {
+                        label: 'Root',
+                        data: [{x: root, y: 0}],
+                        borderColor: 'red',
+                        backgroundColor: 'red',
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
